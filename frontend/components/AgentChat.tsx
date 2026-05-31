@@ -16,6 +16,71 @@ const examples = [
   "本周销售情况怎么样"
 ];
 
+function asRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function asList(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function ResultPanel({ result }: { result: ChatResponse | null }) {
+  if (!result) {
+    return <div className="text-sm text-black/50">Agent 输出会显示在这里。</div>;
+  }
+  const output = result.structured_output;
+  const recommended = asList(output.recommended_skus);
+  const copies = asRecord(output.copies);
+  const metrics = asRecord(output.metrics);
+  const anomalies = asList(output.anomalies);
+  const recommendations = asList(output.recommendations);
+
+  if (recommended.length) {
+    return (
+      <div className="space-y-3">
+        <div className="text-sm font-medium">商品推荐</div>
+        {recommended.map((item, index) => {
+          const sku = typeof item === "string" ? { sku_id: item } : asRecord(item);
+          return (
+            <div key={index} className="rounded-md border border-black/10 bg-rice p-3 text-sm">
+              <div className="font-medium">{String(sku.name || sku.sku_id || "推荐 SKU")}</div>
+              <div className="mt-1 text-black/60">{sku.price ? `¥${String(sku.price)}` : ""} {sku.stock_status ? ` · ${String(sku.stock_status)}` : ""}</div>
+              <div className="mt-2 text-black/75">{String(sku.reason || result.reply)}</div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  if (Object.keys(copies).length) {
+    return (
+      <div className="space-y-3 text-sm">
+        <div className="font-medium">营销内容</div>
+        {["xiaohongshu", "douyin_script", "wechat_private", "sms", "email_subject"].map((key) => copies[key] ? (
+          <div key={key} className="rounded-md border border-black/10 bg-rice p-3">
+            <div className="mb-1 text-xs font-medium text-black/50">{key}</div>
+            <div className="whitespace-pre-wrap">{String(copies[key])}</div>
+          </div>
+        ) : null)}
+      </div>
+    );
+  }
+
+  if (Object.keys(metrics).length || recommendations.length || anomalies.length) {
+    return (
+      <div className="space-y-3 text-sm">
+        <div className="font-medium">经营分析</div>
+        <div className="rounded-md bg-rice p-3">{result.reply}</div>
+        {recommendations.length ? <div className="rounded-md border border-black/10 p-3"><div className="mb-2 font-medium">建议动作</div>{recommendations.map((x, i) => <div key={i}>• {String(x)}</div>)}</div> : null}
+        {anomalies.length ? <div className="rounded-md border border-black/10 p-3"><div className="mb-2 font-medium">异常点</div>{anomalies.map((x, i) => <div key={i}>• {String(x)}</div>)}</div> : null}
+      </div>
+    );
+  }
+
+  return <div className="whitespace-pre-wrap rounded-md bg-rice p-3 text-sm">{result.reply}</div>;
+}
+
 export function AgentChat() {
   const [agent, setAgent] = useState("auto");
   const [message, setMessage] = useState(examples[0]);
@@ -84,6 +149,13 @@ export function AgentChat() {
           <UserCheck size={16} />
           人工接管
         </button>
+        <div className="rounded-md border border-black/10 bg-white p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="font-medium">业务结果</div>
+            {last?.need_human ? <span className="rounded-md bg-clay/10 px-2 py-1 text-xs text-clay">需人工</span> : null}
+          </div>
+          <ResultPanel result={last} />
+        </div>
         <div className="rounded-md border border-black/10 bg-white p-4">
           <div className="font-medium">工具轨迹</div>
           <pre className="mt-3 max-h-48 overflow-auto text-xs">{JSON.stringify(last?.tool_traces ?? [], null, 2)}</pre>
