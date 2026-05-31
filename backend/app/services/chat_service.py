@@ -23,7 +23,7 @@ def chat(message: str, agent_type: str = "auto", context: dict | None = None) ->
     DB.append_log(
         "llm_logs",
         {
-            "provider": "mock-router",
+            "provider": "router",
             "model": "deterministic-router",
             "agent": agent_name,
             "intent": route.get("intent"),
@@ -34,7 +34,15 @@ def chat(message: str, agent_type: str = "auto", context: dict | None = None) ->
     )
     if agent_name == "human":
         audit("human_handoff", actor["email"], {"message": message, "reason": route.get("reason")})
-        return {"reply": "该问题涉及高风险场景，建议人工接管。", "intent": "human", "agent": "human", "structured_output": route, "tool_traces": [], "sources": [], "need_human": True}
+        return {
+            "reply": "该问题涉及高风险场景，建议人工接管。",
+            "intent": "human",
+            "agent": "human",
+            "structured_output": route,
+            "tool_traces": [],
+            "sources": [],
+            "need_human": True,
+        }
     runner = AGENTS.get(agent_name, kb_agent.run)
     result = runner(message, context)
     if result.intent in {"aftersale", "inventory", "marketing", "reporting"}:
