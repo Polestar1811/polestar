@@ -1,0 +1,26 @@
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+
+function authHeaders() {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("token");
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+export async function apiGet<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { cache: "no-store", headers: authHeaders() });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}

@@ -1,0 +1,12 @@
+.env
+*.pyc
+__pycache__/
+.pytest_cache/
+.venv/
+.tools/
+node_modules/
+.next/
+dist/
+build/
+tea_agent.db
+.DS_Store
