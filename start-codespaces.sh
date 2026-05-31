@@ -24,6 +24,21 @@ echo "Frontend: ${FRONTEND_URL}"
 echo "API docs: ${API_URL}/docs"
 echo ""
 
+echo "Checking backend dependencies..."
+if ! python - <<'PY'
+try:
+    import fastapi  # noqa: F401
+except Exception:
+    raise SystemExit(1)
+PY
+  python -m pip install -r backend/requirements.txt
+fi
+
+echo "Checking frontend dependencies..."
+if [ ! -d frontend/node_modules/next ]; then
+  (cd frontend && npm install)
+fi
+
 if command -v gh >/dev/null 2>&1 && [ -n "${CODESPACE_NAME:-}" ]; then
   gh codespace ports visibility 3000:public 8000:public -c "$CODESPACE_NAME" || true
 fi
@@ -37,4 +52,4 @@ cleanup() {
 trap cleanup EXIT
 
 cd frontend
-npm run dev -- -H 0.0.0.0
+npm run dev
